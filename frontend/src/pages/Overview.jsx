@@ -40,8 +40,24 @@ export default function Overview() {
     setActivePatient(patient);
   };
 
-  const handleConfirmDonor = (id) => {
+  const handleConfirmDonor = async (id) => {
+    // Optimistic UI update
     setPatients(prev => prev.map(p => p.request_id === id ? { ...p, status: 'confirmed' } : p));
+    
+    // Send to live API to persist confirmation so Donor Pods and Live Feed pick it up
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (apiUrl) {
+        await fetch(`${apiUrl}/donor/respond`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request_id: id, response_status: 'Accepted' })
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save confirmation to backend', err);
+    }
+    
     setTimeout(() => {
       setActivePatient(null);
     }, 2000);
@@ -49,9 +65,9 @@ export default function Overview() {
 
   const renderUrgencyBadge = (urgency) => {
     switch (urgency) {
-      case 'Critical': return <span className="badge badge-critical">● Critical</span>;
-      case 'Urgent': return <span className="badge badge-urgent">● Urgent</span>;
-      case 'Scheduled': return <span className="badge badge-scheduled">● Scheduled</span>;
+      case 'Critical': return <span className="badge badge-critical">● Critical (6 Days)</span>;
+      case 'Urgent': return <span className="badge badge-urgent">● Urgent (3 Days)</span>;
+      case 'Needy': return <span className="badge badge-scheduled">● Needy (10 Days)</span>;
       default: return null;
     }
   };
@@ -122,7 +138,7 @@ export default function Overview() {
                   <td>{patient.city}</td>
                   <td>{renderUrgencyBadge(patient.urgency)}</td>
                   <td className="text-right">
-                    {patient.status === 'confirmed' ? (
+                    {(patient.status === 'confirmed' || patient.status === 'Confirmed') ? (
                       <div className="status-confirmed animate-fade-in">
                         <CheckCircle size={16} /> Donor Confirmed
                       </div>

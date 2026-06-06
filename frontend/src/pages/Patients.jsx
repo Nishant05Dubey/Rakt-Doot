@@ -153,9 +153,9 @@ export default function Patients() {
                 <div className="form-group">
                   <label>Urgency</label>
                   <select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value})}>
-                    <option>Critical</option>
-                    <option>Urgent</option>
-                    <option>Scheduled</option>
+                    <option value="Urgent">Urgent (3 Days Left)</option>
+                    <option value="Critical">Critical (6 Days Left)</option>
+                    <option value="Needy">Needy (10 Days Left)</option>
                   </select>
                 </div>
               </div>

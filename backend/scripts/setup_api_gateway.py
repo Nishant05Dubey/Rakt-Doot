@@ -30,6 +30,7 @@ def create_api():
         {'path': '/donors/match', 'method': 'GET', 'lambda': 'match_donors'},
         {'path': '/chat', 'method': 'POST', 'lambda': 'chat_bot'},
         {'path': '/donor/respond', 'method': 'POST', 'lambda': 'donor_response'},
+        {'path': '/voice_bot', 'method': 'POST', 'lambda': 'voice_bot_escalation'},
         {'path': '/admin/dashboard', 'method': 'GET', 'lambda': 'admin_dashboard'}
     ]
     

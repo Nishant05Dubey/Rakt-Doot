@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Droplet, User, MapPin, Calendar, MessageSquare, Check, XCircle } from 'lucide-react';
 import './LiveCoordinationPanel.css';
 
@@ -7,17 +7,19 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
   const [donors, setDonors] = useState([]);
   const [activeDonorIndex, setActiveDonorIndex] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (phase === 'scanning') {
+    if (phase === 'scanning' && !hasFetched.current) {
+      hasFetched.current = true;
       // Fetch matches from our live API
       const fetchMatches = async () => {
         try {
           const apiUrl = import.meta.env.VITE_API_URL;
-          // In case API URL is not set, we'll fall back to mock data for demonstration
           if (!apiUrl) throw new Error("API URL missing");
           
-          const response = await fetch(`${apiUrl}/donors/match?blood_type=${encodeURIComponent(patient.blood)}`);
+          const bloodType = patient.blood || patient.blood_type;
+          const response = await fetch(`${apiUrl}/donors/match?blood_type=${encodeURIComponent(bloodType)}`);
           if (!response.ok) throw new Error("Failed to fetch");
           const data = await response.json();
           
@@ -25,7 +27,7 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
             if (data.matches && data.matches.length > 0) {
               setDonors(data.matches);
             } else {
-              setDonors([{ donor_id: 'Mock1', name: 'Rahul Verma', distance_km: 2.1, reliability_score: 98, days_since_donation: 110 }]);
+              setDonors([{ donor_id: 'Mock1', name: 'Donor 682386', distance_km: 2.1, reliability_score: 98, days_since_donation: 110 }]);
             }
             setPhase('matched');
           }, 2500); // Simulate scanning delay
@@ -33,9 +35,9 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
           console.error("API Error, using fallback data", error);
           setTimeout(() => {
             setDonors([
-              { donor_id: 'ID1', name: 'Rahul Verma', distance_km: 4.1, reliability_score: 94, days_since_donation: 134, status: 'AVAILABLE' },
-              { donor_id: 'ID2', name: 'Meena Joshi', distance_km: 6.8, reliability_score: 87, days_since_donation: 98, status: 'AT WORK' },
-              { donor_id: 'ID3', name: 'Anil Kumar', distance_km: 8.2, reliability_score: 71, days_since_donation: 156, status: 'AVAILABLE' }
+              { donor_id: 'ID1', name: 'Donor 965F27', distance_km: 4.1, reliability_score: 94, days_since_donation: 134, status: 'AVAILABLE' },
+              { donor_id: 'ID2', name: 'Donor 86188D', distance_km: 6.8, reliability_score: 87, days_since_donation: 98, status: 'AT WORK' },
+              { donor_id: 'ID3', name: 'Donor 37AF8F', distance_km: 8.2, reliability_score: 71, days_since_donation: 156, status: 'AVAILABLE' }
             ]);
             setPhase('matched');
           }, 2500);
@@ -48,33 +50,39 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
   useEffect(() => {
     if (phase === 'matched') {
       setTimeout(() => {
-        setPhase('chatting');
-        startAutomatedChat();
-      }, 1500);
+        setPhase('waiting_webhook');
+      }, 4000); // 4 seconds to view the list before waiting starts
     }
   }, [phase]);
 
-  const startAutomatedChat = () => {
-    const sequence = [
-      { sender: 'ai', text: `Namaste! 🙏 Ek Thalassemia patient ko kal ${patient.city} mein ${patient.blood} blood ki zaroorat hai. Kya aap madad kar sakte hain?`, delay: 1000 },
-      { sender: 'donor', text: `Kal toh main kaam par hoon.. Sunday ko ho sakta hai?`, delay: 3500 },
-      { sender: 'ai', text: `Bilkul! Sunday perfect hai. Maine aapko ${patient.hospital} mein Sunday ko subah 10 baje ke liye book kar diya hai.`, delay: 5500 },
-      { sender: 'donor', text: `Theek hai, main aa jaunga 👍`, delay: 8000 },
-      { sender: 'ai', text: `Bahut shukriya! Aapka ek kadam ek zindagi bachayega. 🩸 Location link aapke WhatsApp par bhej diya gaya hai.`, delay: 10000, action: 'confirm' }
-    ];
-
-    sequence.forEach((msg, idx) => {
-      setTimeout(() => {
-        setChatMessages(prev => [...prev, { id: idx, sender: msg.sender, text: msg.text }]);
-        if (msg.action === 'confirm') {
-          setTimeout(() => {
+  // Poll the live API to see if the donor replied to the WhatsApp Twilio message
+  useEffect(() => {
+    if (phase !== 'waiting_webhook') return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (!apiUrl) return;
+        const res = await fetch(`${apiUrl}/admin/dashboard`);
+        if (res.ok) {
+          const data = await res.json();
+          const patientId = patient.request_id || patient.id;
+          const livePatient = data.patient_queue.find(p => p.request_id === patientId || p.id === patientId);
+          if (livePatient && (livePatient.status === 'Confirmed' || livePatient.status === 'confirmed')) {
             setPhase('confirmed');
-            onConfirm(patient.id);
-          }, 2000);
+            clearInterval(interval);
+            setTimeout(() => {
+              onConfirm(patientId);
+            }, 2000);
+          }
         }
-      }, msg.delay);
-    });
-  };
+      } catch(e) {
+        console.error("Polling error", e);
+      }
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [phase, patient]);
 
   const activeDonor = donors[activeDonorIndex] || {};
 
@@ -84,7 +92,7 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
         <div className="panel-header">
           <div>
             <div className="panel-subtitle">LIVE COORDINATION</div>
-            <h2 className="panel-title">{patient.name} <span className="blood-text">· {patient.blood} ·</span> {patient.hospital}</h2>
+            <h2 className="panel-title">{patient.patient_name || patient.name} <span className="blood-text">· {patient.blood_type || patient.blood} ·</span> {patient.hospital}</h2>
           </div>
           <button className="close-btn" onClick={onClose}><X size={24} /></button>
         </div>
@@ -96,7 +104,7 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
               <div className="scanning-header">
                 <span className="bot-icon">🤖</span> AI Matching Engine <span className="version">v2.4</span>
               </div>
-              <p className="scanning-text">Finding best donors for {patient.name}...</p>
+              <p className="scanning-text">Finding best donors for {patient.patient_name || patient.name}...</p>
               
               <div className="radar-box">
                 <div className="radar">
@@ -111,16 +119,36 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
             </div>
           )}
 
-          {phase === 'confirmed' && (
-            <div className="success-banner">
-              <Check size={20} /> Donor Confirmed — Dashboard Updated Automatically. No human call needed.
+          {phase === 'matched' && (
+            <div className="success-banner" style={{background: '#dbeafe', color: '#1e40af', borderColor: '#bfdbfe'}}>
+              <Check size={20} /> AI found optimal donor matches. Sending Live WhatsApp Alert...
             </div>
           )}
 
-          {(phase === 'matched' || phase === 'chatting' || phase === 'confirmed') && (
+          {phase === 'waiting_webhook' && (
+             <div className="scanning-container">
+               <div className="scanning-header">
+                 <span className="bot-icon">💬</span> WhatsApp Delivered
+               </div>
+               <p className="scanning-text" style={{marginTop: '20px', fontSize: '1.2rem'}}>
+                 Waiting for donor to reply "YES" on WhatsApp...
+               </p>
+               <div className="radar-box" style={{height: '100px', marginTop: '20px'}}>
+                 <p className="radar-status animate-pulse">Polling AWS Database for Webhook Response...</p>
+               </div>
+             </div>
+          )}
+
+          {phase === 'confirmed' && (
+            <div className="success-banner">
+              <Check size={20} /> Donor Replied YES! Dashboard Updated Automatically.
+            </div>
+          )}
+
+          {(phase === 'matched' || phase === 'waiting_webhook' || phase === 'confirmed') && (
             <div className="donors-list">
               {donors.map((donor, idx) => {
-                const isCurrentChat = idx === activeDonorIndex;
+                const isCurrentChat = idx === activeDonorIndex && (phase === 'waiting_webhook' || phase === 'confirmed');
                 
                 if (isCurrentChat) {
                   return (
@@ -129,42 +157,21 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
                         <div className="chat-avatar">📱</div>
                         <div className="chat-title">
                           <b>{donor.name || donor.donor_id.substring(0,8)}</b>
-                          <span>WhatsApp Conversation (AI Managed)</span>
-                        </div>
-                      </div>
-                      
-                      <div className="whatsapp-window">
-                        <div className="wa-header">
-                          <div className="wa-avatar">{donor.name ? donor.name.substring(0,2).toUpperCase() : 'RV'}</div>
-                          <div className="wa-info">
-                            <b>{donor.name || donor.donor_id.substring(0,8)}</b>
-                            <span>● online · AI bot active</span>
-                          </div>
-                        </div>
-                        <div className="wa-body">
-                          {chatMessages.map(msg => (
-                            <div key={msg.id} className={`wa-bubble ${msg.sender === 'ai' ? 'wa-ai' : 'wa-donor'}`}>
-                              {msg.text}
-                              {msg.sender === 'ai' && <div className="wa-tick">✓✓</div>}
-                            </div>
-                          ))}
-                          {phase === 'chatting' && chatMessages.length > 0 && chatMessages[chatMessages.length - 1].sender === 'ai' && (
-                            <div className="wa-typing">typing...</div>
-                          )}
+                          <span>Live Twilio Connection Active</span>
                         </div>
                       </div>
                     </div>
                   );
                 }
 
-                // Inactive donors in the queue
+                // Inactive donors in the queue (or all donors during 'matched' phase)
                 return (
                   <div key={idx} className="donor-card-queued">
                     <div className="donor-rank">#{idx + 1}</div>
                     <div className="donor-card-body">
                       <div className="d-row-1">
                         <b>{donor.name || donor.donor_id.substring(0,8)}</b>
-                        <span className="blood-badge-sm">{patient.blood}</span>
+                        <span className="blood-badge-sm">{patient.blood_type || patient.blood}</span>
                         <span className="d-location">· {donor.distance_km} km away</span>
                         <span className="d-status-badge">AVAILABLE</span>
                       </div>

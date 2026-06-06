@@ -38,6 +38,18 @@ def create_lambda_role():
             RoleName=ROLE_NAME,
             PolicyArn='arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess'
         )
+        iam.attach_role_policy(
+            RoleName=ROLE_NAME,
+            PolicyArn='arn:aws:iam::aws:policy/AmazonBedrockFullAccess'
+        )
+        iam.attach_role_policy(
+            RoleName=ROLE_NAME,
+            PolicyArn='arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator'
+        )
+        iam.attach_role_policy(
+            RoleName=ROLE_NAME,
+            PolicyArn='arn:aws:iam::aws:policy/AWSLambda_FullAccess'
+        )
         print("Waiting for role to propagate...")
         time.sleep(15) # Wait for IAM propagation
         return role['Role']['Arn']
@@ -51,6 +63,11 @@ def deploy_function(function_name, role_arn):
         print(f"Source folder for {function_name} not found. Skipping.")
         return
         
+    if function_name == 'donor_response':
+        print(f"Installing openai dependency for {function_name} (Linux target)...")
+        # Must target Linux since lambda runs on Linux, avoiding native binary issues on Windows
+        os.system(f'pip install --platform manylinux2014_x86_64 --target "{source_dir}" --implementation cp --python-version 3.12 --only-binary=:all: openai')
+        
     print(f"Zipping {function_name}...")
     with zipfile.ZipFile(zip_path, 'w') as zf:
         for root, _, files in os.walk(source_dir):
@@ -62,6 +79,38 @@ def deploy_function(function_name, role_arn):
     with open(zip_path, 'rb') as f:
         zip_bytes = f.read()
         
+    # Define environment variables per function
+    env_vars = {}
+    if function_name == 'match_donors':
+        env_vars = {
+            'Variables': {
+                'TWILIO_ACCOUNT_SID': os.environ.get('TWILIO_ACCOUNT_SID', ''),
+                'TWILIO_AUTH_TOKEN': os.environ.get('TWILIO_AUTH_TOKEN', ''),
+                'TWILIO_PHONE_NUMBER': '+14155238886', # WhatsApp Sandbox
+                'VAPI_API_KEY': os.environ.get('VAPI_API_KEY', 'd9000076-7e00-44a6-b4a0-8eafa9acb7c9'),
+                'VAPI_PHONE_NUMBER_ID': os.environ.get('VAPI_PHONE_NUMBER_ID', '07d50b8f-ce5e-4cfa-bd4d-21068791e060'),
+                'VERIFIED_PHONE_NUMBER': '+919340766550'
+            }
+        }
+    elif function_name == 'voice_bot_escalation':
+        env_vars = {
+            'Variables': {
+                'TWILIO_ACCOUNT_SID': os.environ.get('TWILIO_ACCOUNT_SID', ''),
+                'TWILIO_AUTH_TOKEN': os.environ.get('TWILIO_AUTH_TOKEN', ''),
+                'TWILIO_VOICE_NUMBER': '+15754890148',
+                'VERIFIED_PHONE_NUMBER': '+919340766550',
+                'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY', 'sk-mock'),
+                'OPENAI_BASE_URL': os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+            }
+        }
+    elif function_name == 'donor_response':
+        env_vars = {
+            'Variables': {
+                'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY', 'sk-mock'),
+                'OPENAI_BASE_URL': os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+            }
+        }
+        
     try:
         print(f"Deploying {function_name}...")
         lambda_client.create_function(
@@ -71,7 +120,8 @@ def deploy_function(function_name, role_arn):
             Handler='app.lambda_handler',
             Code={'ZipFile': zip_bytes},
             Timeout=15,
-            MemorySize=128
+            MemorySize=128,
+            Environment=env_vars if env_vars else {'Variables': {}}
         )
         print(f"Successfully created lambda: {function_name}")
     except lambda_client.exceptions.ResourceConflictException:
@@ -80,11 +130,23 @@ def deploy_function(function_name, role_arn):
             FunctionName=function_name,
             ZipFile=zip_bytes
         )
+        if env_vars:
+            import time
+            while True:
+                status = lambda_client.get_function(FunctionName=function_name)['Configuration']['LastUpdateStatus']
+                if status == 'Successful':
+                    break
+                print(f"Waiting for {function_name} update to finish...")
+                time.sleep(2)
+            lambda_client.update_function_configuration(
+                FunctionName=function_name,
+                Environment=env_vars
+            )
     finally:
         os.remove(zip_path)
 
 if __name__ == '__main__':
     role_arn = create_lambda_role()
-    functions = ['create_request', 'match_donors', 'chat_bot', 'donor_response', 'admin_dashboard']
+    functions = ['create_request', 'match_donors', 'chat_bot', 'donor_response', 'voice_bot_escalation', 'admin_dashboard']
     for fn in functions:
         deploy_function(fn, role_arn)
