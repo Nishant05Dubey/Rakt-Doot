@@ -1,0 +1,100 @@
+.feed-container {
+  padding: 0;
+  overflow: hidden;
+}
+
+.feed-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-live {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: 0.05em;
+  animation: pulse-soft 2s infinite;
+}
+
+.feed-list {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-item {
+  position: relative;
+  padding-left: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+.feed-item:last-child {
+  padding-bottom: 0;
+}
+
+.feed-dot {
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  width: 10px;
+  height: 10px;
+  background: var(--blood-red);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.1);
+  z-index: 2;
+}
+
+.feed-timeline-line {
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--border-light);
+  z-index: 1;
+}
+
+.feed-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.feed-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.ai-badge {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+
+.msg-badge {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.ok-badge {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.feed-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.feed-text {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}

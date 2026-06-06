@@ -1,0 +1,73 @@
+.page-header {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: right;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.status-indicator b {
+  color: var(--text-primary);
+  font-size: 0.75rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--status-scheduled-text);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--status-scheduled);
+}
+
+.user-avatar {
+  background-color: var(--blood-red);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(225, 29, 72, 0.2);
+}
+
+/* Red EKG Line Aesthetic */
+.ekg-line {
+  height: 1px;
+  background-color: var(--border-light);
+  width: 100%;
+  position: relative;
+}
+
+.ekg-line::after {
+  content: '';
+  position: absolute;
+  right: 10%;
+  top: -10px;
+  width: 150px;
+  height: 20px;
+  background-image: url('data:image/svg+xml;utf8,<svg width="150" height="20" viewBox="0 0 150 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 10H80L85 0L95 20L100 10H150" stroke="%23e11d48" stroke-width="1.5"/></svg>');
+  background-repeat: no-repeat;
+}
