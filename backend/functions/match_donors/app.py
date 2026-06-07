@@ -57,10 +57,10 @@ def lambda_handler(event, context):
                 d_lng = float(donor.get('lng', 0))
                 distance = calculate_distance(lat, lng, d_lat, d_lng)
                 
-                # Since the dataset only contains an anonymized user_id hash and no Name column,
-                # we will use the exact user_id from the dataset as their literal identifier.
+                # Convert hash to a 6-digit number for cleaner UI
                 raw_id = donor['donor_id'].replace('\\x', '')
-                name = f"Donor {raw_id[:6].upper()}"
+                hash_int = int(raw_id[:8], 16) if raw_id else 123456
+                name = f"Donor {str(hash_int)[-6:].zfill(6)}"
                 
                 # REAL Compatibility score based on ACTUAL distance and days since donation
                 # Further away = lower score.
@@ -195,15 +195,14 @@ Conversation Guidelines
 
 Scheduling Limitation (CRITICAL INSTRUCTION)
 You do NOT have direct calendar or scheduling integrations. You must NOT claim that an appointment is booked, locked, or finalized.
-Once you have collected the location, day, time, and contact info, you must close by saying: "Thanks - I'll pass these details to our scheduling team to confirm the exact slot."
-Offer to have the team send a text or email confirmation once the slot is finalized.
+Once you have collected the location, day, time, and contact info, you MUST close the call by saying: "Thanks! To confirm your schedule, please check your WhatsApp and reply with 'YES' to the message we just sent you. I'll pass these details to our scheduling team."
 
 Safety & Medical Limitations
 If the caller asks medical eligibility questions, you must provide a brief, general answer and recommend confirming with the official donor eligibility guidelines at the hospital.
 
-IMPORTANT SYSTEM ROUTING:
-If the donor explicitly declines or cannot donate, you MUST include the exact secret word '[DECLINED]' anywhere in your response.
-If you have successfully gathered all the required scheduling information, you MUST include the exact secret word '[CONFIRMED]' anywhere in your closing response."""
+IMPORTANT SYSTEM ROUTING & HANG UP:
+If the donor explicitly declines or cannot donate, end your sentence with 'Goodbye'.
+If you have successfully gathered all the required scheduling information, end your sentence with 'Goodbye'."""
 
                                 vapi_payload = {
                                     "phoneNumberId": vapi_phone_id,
@@ -214,6 +213,7 @@ If you have successfully gathered all the required scheduling information, you M
                                         "name": "RaktDootAgent",
                                         "firstMessage": f"Hello! This is the Rakt Doot blood donation team calling regarding an urgent {blood_type} patient at {hospital}. Are you available to donate today? And what time would you prefer to come?",
                                         "firstMessageMode": "assistant-waits-for-user",
+                                        "endCallPhrases": ["Goodbye", "goodbye", "Goodbye.", "goodbye."],
                                         "model": {
                                             "provider": "openai",
                                             "model": "gpt-3.5-turbo",

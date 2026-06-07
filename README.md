@@ -22,11 +22,11 @@ By leveraging an event-driven AWS architecture, **OpenAI GPT** for intelligent W
 - Automatically enforces a **90-day medical cooldown period** to ensure donor safety.
 - Tracks contacted donors to prevent duplicate outreach.
 
-### 💬 WhatsApp AI Chatbot (OpenAI + Twilio)
+### 💬 WhatsApp AI Chatbot (Amazon Bedrock + Twilio)
 - Sends automated WhatsApp messages to matched donors via **Twilio Sandbox API**.
-- Uses **OpenAI GPT** to hold intelligent, empathetic conversations in **Hinglish** (Hindi + English).
+- Uses **Amazon Bedrock (Claude 3 Haiku)** to hold intelligent, lightning-fast, empathetic conversations in **Hinglish** (Hindi + English) natively within AWS.
 - Follows a structured flow: asks availability → confirms donation → provides hospital details → or gracefully handles decline.
-- **NLP fallback engine** ensures responses even if OpenAI is temporarily unavailable.
+- **NLP fallback engine** ensures robust offline responses.
 
 ### 📞 Automated Voice Calling (Vapi AI)
 - For **Urgent** requests (≤3 days left for blood), the system automatically places an **AI-powered phone call** to the top donor match.
@@ -34,9 +34,10 @@ By leveraging an event-driven AWS architecture, **OpenAI GPT** for intelligent W
 - The AI agent introduces itself as Rakt Doot, explains the urgency, and collects scheduling information from the donor.
 - Supports multilingual detection (English, Hindi, Telugu).
 
-### 🔄 Auto-Escalation Protocol
+### 🔄 Auto-Escalation & Real-Time Sync
+- **Vapi WhatsApp Loop**: Vapi voice AI intelligently directs donors to confirm via WhatsApp ("Reply YES to the text we just sent"), routing all confirmations through the ultra-reliable Twilio webhook.
 - If a donor **declines** (via WhatsApp or voice), the system automatically contacts the **next best match** — no human intervention needed.
-- Confirmed donations update the patient status in real-time across the dashboard.
+- **Auto-Refreshing React UI**: The dashboard polls the live DynamoDB database to instantly flip UI states to "Confirmed" without page reloads.
 
 ### 📊 Real-time AI Activity Feed
 - An audit log displaying every action the AI takes in the background (scanning pods, sending alerts, generating tokens).
@@ -71,9 +72,9 @@ Rakt Doot is built on a **100% Serverless Microservices Architecture**, ensuring
 - **Amazon EventBridge** — Event-driven coordinator that triggers automated workflows
 
 ### AI & Communication
-- **OpenAI GPT** — Powers the WhatsApp conversational chatbot with context-aware, empathetic responses
-- **Vapi AI** — Voice AI platform for automated outbound phone calls to donors
-- **Twilio** — WhatsApp Sandbox API for sending/receiving donor messages
+- **Amazon Bedrock (Claude 3 Haiku)** — Natively powers the WhatsApp conversational chatbot with context-aware, empathetic Hinglish responses securely via IAM.
+- **Vapi AI** — Voice AI platform for automated outbound phone calls to donors.
+- **Twilio** — WhatsApp Sandbox API for sending/receiving donor messages.
 
 ---
 
@@ -121,8 +122,7 @@ export TWILIO_ACCOUNT_SID=your_twilio_sid
 export TWILIO_AUTH_TOKEN=your_twilio_auth_token
 export VAPI_API_KEY=your_vapi_api_key
 export VAPI_PHONE_NUMBER_ID=your_vapi_phone_number_id
-export OPENAI_API_KEY=your_openai_api_key
-export OPENAI_BASE_URL=your_openai_base_url  # optional
+# Note: Amazon Bedrock authenticates automatically via the IAM Lambda Execution Role! No API keys needed for the WhatsApp bot.
 ```
 
 ### 3. Frontend Setup

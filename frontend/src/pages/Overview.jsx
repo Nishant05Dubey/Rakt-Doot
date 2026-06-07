@@ -31,7 +31,12 @@ export default function Overview() {
         console.error('Failed to fetch dashboard', err);
       }
     };
+    
     fetchDashboard();
+    
+    // Auto-refresh every 3 seconds to catch live WhatsApp/Vapi confirmations
+    const intervalId = setInterval(fetchDashboard, 3000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const [activePatient, setActivePatient] = useState(null);

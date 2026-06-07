@@ -35,9 +35,9 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
           console.error("API Error, using fallback data", error);
           setTimeout(() => {
             setDonors([
-              { donor_id: 'ID1', name: 'Donor 965F27', distance_km: 4.1, reliability_score: 94, days_since_donation: 134, status: 'AVAILABLE' },
-              { donor_id: 'ID2', name: 'Donor 86188D', distance_km: 6.8, reliability_score: 87, days_since_donation: 98, status: 'AT WORK' },
-              { donor_id: 'ID3', name: 'Donor 37AF8F', distance_km: 8.2, reliability_score: 71, days_since_donation: 156, status: 'AVAILABLE' }
+              { donor_id: 'ID1', name: 'Donor 965827', distance_km: 4.1, reliability_score: 94, days_since_donation: 134, status: 'AVAILABLE' },
+              { donor_id: 'ID2', name: 'Donor 861882', distance_km: 6.8, reliability_score: 87, days_since_donation: 98, status: 'AT WORK' },
+              { donor_id: 'ID3', name: 'Donor 372589', distance_km: 8.2, reliability_score: 71, days_since_donation: 156, status: 'AVAILABLE' }
             ]);
             setPhase('matched');
           }, 2500);

@@ -34,15 +34,12 @@ def lambda_handler(event, context):
                 blood_type = pending_requests[0].get('blood_type')
                 hospital = pending_requests[0].get('hospital', 'the hospital')
                 
-                # --- AI CONTINUOUS CHAT (OPENAI) ---
-                import os
+                # --- AI CONTINUOUS CHAT (AMAZON BEDROCK) ---
+                import boto3
+                import json
                 try:
-                    openai_key = os.environ.get('OPENAI_API_KEY', 'sk-mock')
-                    if openai_key == 'sk-mock' or not openai_key:
-                        raise ValueError("No valid OpenAI key provided")
-                        
-                    from openai import OpenAI
-                    client = OpenAI(api_key=openai_key)
+                    # Initialize Bedrock Runtime
+                    bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
                     
                     system_prompt = (
                         f"You are Rakt Doot, an AI blood donation coordinator for an NGO. "
@@ -66,15 +63,25 @@ def lambda_handler(event, context):
                         f"- If the donor DECLINES or says they cannot donate, include '[DECLINED]' in your response."
                     )
                     
-                    response_ai = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
+                    body = json.dumps({
+                        "anthropic_version": "bedrock-2023-05-31",
+                        "max_tokens": 150,
+                        "system": system_prompt,
+                        "messages": [
                             {"role": "user", "content": twilio_body}
-                        ]
+                        ],
+                        "temperature": 0.3
+                    })
+                    
+                    response_ai = bedrock.invoke_model(
+                        body=body, 
+                        modelId='anthropic.claude-3-haiku-20240307-v1:0', 
+                        accept='application/json', 
+                        contentType='application/json'
                     )
                     
-                    ai_response = response_ai.choices[0].message.content
+                    response_body = json.loads(response_ai.get('body').read())
+                    ai_response = response_body.get('content', [{}])[0].get('text', '')
                     
                     if '[CONFIRMED]' in ai_response:
                         response_status = "Accepted"
