@@ -35,8 +35,6 @@ def lambda_handler(event, context):
                 hospital = pending_requests[0].get('hospital', 'the hospital')
                 
                 # --- AI CONTINUOUS CHAT (AMAZON BEDROCK) ---
-                import boto3
-                import json
                 try:
                     # Initialize Bedrock Runtime
                     bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')

@@ -8,6 +8,7 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
   const [activeDonorIndex, setActiveDonorIndex] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const hasFetched = useRef(false);
+  const contactedCountRef = useRef(-1);
 
   useEffect(() => {
     if (phase === 'scanning' && !hasFetched.current) {
@@ -68,12 +69,34 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
           const data = await res.json();
           const patientId = patient.request_id || patient.id;
           const livePatient = data.patient_queue.find(p => p.request_id === patientId || p.id === patientId);
-          if (livePatient && (livePatient.status === 'Confirmed' || livePatient.status === 'confirmed')) {
-            setPhase('confirmed');
-            clearInterval(interval);
-            setTimeout(() => {
-              onConfirm(patientId);
-            }, 2000);
+          if (livePatient) {
+            // Check for Confirmation
+            if (livePatient.status === 'Confirmed' || livePatient.status === 'confirmed') {
+              setPhase('confirmed');
+              clearInterval(interval);
+              setTimeout(() => {
+                onConfirm(patientId);
+              }, 2000);
+            } 
+            // Check for Auto-Escalation (Rejection)
+            else if (livePatient.contacted_donors) {
+                const currentCount = livePatient.contacted_donors.length;
+                if (contactedCountRef.current === -1) {
+                    // Initialize the baseline contact count
+                    contactedCountRef.current = currentCount;
+                } else if (currentCount > contactedCountRef.current) {
+                    // The backend automatically escalated to a new donor!
+                    setPhase('rejected');
+                    clearInterval(interval);
+                    
+                    // Show rejection message for 3 seconds, then go back to waiting state for the new donor
+                    setTimeout(() => {
+                        setActiveDonorIndex(prev => prev + 1);
+                        contactedCountRef.current = currentCount;
+                        setPhase('waiting_webhook');
+                    }, 4000);
+                }
+            }
           }
         }
       } catch(e) {
@@ -145,10 +168,16 @@ export default function LiveCoordinationPanel({ patient, onClose, onConfirm }) {
             </div>
           )}
 
-          {(phase === 'matched' || phase === 'waiting_webhook' || phase === 'confirmed') && (
+          {phase === 'rejected' && (
+            <div className="success-banner" style={{background: '#fee2e2', color: '#991b1b', borderColor: '#f87171'}}>
+              <XCircle size={20} /> Donor Rejected! Moving to next suitable match...
+            </div>
+          )}
+
+          {(phase === 'matched' || phase === 'waiting_webhook' || phase === 'confirmed' || phase === 'rejected') && (
             <div className="donors-list">
               {donors.map((donor, idx) => {
-                const isCurrentChat = idx === activeDonorIndex && (phase === 'waiting_webhook' || phase === 'confirmed');
+                const isCurrentChat = idx === activeDonorIndex && (phase === 'waiting_webhook' || phase === 'confirmed' || phase === 'rejected');
                 
                 if (isCurrentChat) {
                   return (
