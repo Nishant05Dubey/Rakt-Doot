@@ -212,7 +212,7 @@ If you have successfully gathered all the required scheduling information, you M
                                     },
                                     "assistant": {
                                         "name": "RaktDootAgent",
-                                        "firstMessage": f"Hello! This is the Rakt Doot blood donation team calling. We wanted to schedule for an urgent {blood_type} blood patient at {hospital} and you are our top pick. Is this a good time to talk?",
+                                        "firstMessage": f"Hello! This is the Rakt Doot blood donation team calling regarding an urgent {blood_type} patient at {hospital}. Are you available to donate today? And what time would you prefer to come?",
                                         "firstMessageMode": "assistant-waits-for-user",
                                         "model": {
                                             "provider": "openai",

@@ -87,8 +87,8 @@ def deploy_function(function_name, role_arn):
                 'TWILIO_ACCOUNT_SID': os.environ.get('TWILIO_ACCOUNT_SID', ''),
                 'TWILIO_AUTH_TOKEN': os.environ.get('TWILIO_AUTH_TOKEN', ''),
                 'TWILIO_PHONE_NUMBER': '+14155238886', # WhatsApp Sandbox
-                'VAPI_API_KEY': os.environ.get('VAPI_API_KEY', 'd9000076-7e00-44a6-b4a0-8eafa9acb7c9'),
-                'VAPI_PHONE_NUMBER_ID': os.environ.get('VAPI_PHONE_NUMBER_ID', '07d50b8f-ce5e-4cfa-bd4d-21068791e060'),
+                'VAPI_API_KEY': os.environ.get('VAPI_API_KEY', ''),
+                'VAPI_PHONE_NUMBER_ID': os.environ.get('VAPI_PHONE_NUMBER_ID', ''),
                 'VERIFIED_PHONE_NUMBER': '+919340766550'
             }
         }

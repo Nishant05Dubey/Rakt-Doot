@@ -16,11 +16,12 @@ def lambda_handler(event, context):
             summary = analysis.get('summary', '')
             transcript = message.get('transcript', '')
             
-            # The active_request_id was passed via serverUrlSecret in the Vapi payload
-            request_id = message.get('call', {}).get('serverUrlSecret')
+            # The active_request_id is passed via x-vapi-secret header from Vapi
+            headers = event.get('headers', {})
+            request_id = headers.get('x-vapi-secret') or headers.get('X-Vapi-Secret')
             
             if not request_id:
-                print("No request_id found in Vapi webhook")
+                print("No request_id found in x-vapi-secret header")
                 return {'statusCode': 200, 'body': 'OK'}
             
             request_table = dynamodb.Table('BloodRequestsTable')

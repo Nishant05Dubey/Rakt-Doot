@@ -37,8 +37,12 @@ def lambda_handler(event, context):
                 # --- AI CONTINUOUS CHAT (OPENAI) ---
                 import os
                 try:
+                    openai_key = os.environ.get('OPENAI_API_KEY', 'sk-mock')
+                    if openai_key == 'sk-mock' or not openai_key:
+                        raise ValueError("No valid OpenAI key provided")
+                        
                     from openai import OpenAI
-                    client = OpenAI() # Uses OPENAI_API_KEY and OPENAI_BASE_URL from env
+                    client = OpenAI(api_key=openai_key)
                     
                     system_prompt = (
                         f"You are Rakt Doot, an AI blood donation coordinator for an NGO. "
@@ -63,7 +67,7 @@ def lambda_handler(event, context):
                     )
                     
                     response_ai = client.chat.completions.create(
-                        model="openai.gpt-oss-120b",
+                        model="gpt-3.5-turbo",
                         messages=[
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": twilio_body}
@@ -81,24 +85,24 @@ def lambda_handler(event, context):
                     else:
                         reply_text = ai_response
                 except Exception as e:
-                    print(f"OpenAI Error: {e}")
-                    # NLP Fallback Engine if OpenAI fails
+                    print(f"Fallback to NLP: {e}")
+                    # Advanced NLP Fallback Engine
                     tb_lower = twilio_body.lower()
                     
-                    if any(word in tb_lower for word in ['yes', 'haan', 'han', 'ok', 'sure', 'theek', 'aa jaunga', 'ready', 'available']):
+                    if any(word in tb_lower for word in ['yes', 'haan', 'han', 'ok', 'sure', 'theek', 'aa jaunga', 'ready', 'available', 'of course', 'coming']):
                         response_status = "Accepted"
-                        reply_text = f"Bahut shukriya! 🙏 Please {hospital} aayein jitna jaldi ho sake. Humare coordinator aapko details bhejenge. You are saving a life!"
-                    elif any(word in tb_lower for word in ['kaha', 'where', 'location', 'hospital', 'address', 'jagah']):
-                        reply_text = f"Patient {hospital} mein admit hai. Kya aap wahan aa sakte hain aaj? Please 'YES' reply karein."
-                    elif any(word in tb_lower for word in ['kab', 'when', 'time', 'samay', 'kitne baje']):
-                        reply_text = f"Emergency hai - jitna jaldi ho sake aayein. {hospital} mein aaj kisi bhi waqt aa sakte hain. Kya aap available hain? 'YES' ya 'NO' reply karein."
-                    elif any(word in tb_lower for word in ['no', 'nahi', 'cant', 'cannot', 'nhi', 'sorry', 'busy']):
+                        reply_text = f"Bahut shukriya! 🙏 Please {hospital} aayein jitna jaldi ho sake. Humare coordinator aapko thodi der mein contact karenge exact details ke sath. You are saving a life today!"
+                    elif any(word in tb_lower for word in ['kaha', 'where', 'location', 'hospital', 'address', 'jagah', 'idhar']):
+                        reply_text = f"Location hai: {hospital}. Patient ko abhi urgently {blood_type} blood ki jarurat hai. Kya aap wahan aa sakte hain? Please 'YES' ya 'NO' reply karein."
+                    elif any(word in tb_lower for word in ['kab', 'when', 'time', 'samay', 'kitne baje', 'baje', 'aaj', 'kal', 'der']):
+                        reply_text = f"Emergency hai, toh jitna jaldi ho sake (As soon as possible) aayein. {hospital} mein aaj kisi bhi waqt blood bank khula hai. Kya aap aaj available hain?"
+                    elif any(word in tb_lower for word in ['no', 'nahi', 'cant', 'cannot', 'nhi', 'sorry', 'busy', 'not possible']):
                         response_status = "Declined"
-                        reply_text = "Koi baat nahi, aapka time ke liye shukriya. Take care! 🙏"
-                    elif '?' in tb_lower:
-                        reply_text = f"Agar aap {blood_type} blood donate karne ke liye available hain toh please 'YES' type karein. Patient {hospital} mein hai - emergency hai."
+                        reply_text = "Koi baat nahi, aapne time nikala uske liye shukriya. Humein samajh aata hai. Take care! 🙏"
+                    elif any(word in tb_lower for word in ['hi', 'hello', 'hey', 'namaste', 'kaun', 'who']):
+                        reply_text = f"Namaste! Main Rakt Doot AI hu. Ek Thalassemia patient ko {blood_type} blood ki urgently zarurat hai {hospital} mein. Kya aap aaj donate karke unki jaan bacha sakte hain?"
                     else:
-                        reply_text = f"Main Rakt Doot AI hu. Ek patient ko {blood_type} blood ki zarurat hai {hospital} mein. Kya aap aaj donate kar sakte hain? 'YES' ya 'NO' reply karein."
+                        reply_text = f"Maaf kijiye, main theek se samajh nahi paya. Ek patient ko {blood_type} blood ki urgently zarurat hai {hospital} mein. Agar aap donate karne aa sakte hain toh please 'YES' type karein."
             else:
                 reply_text = "Thank you, but there are no active urgent requests right now."
 
