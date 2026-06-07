@@ -36,8 +36,10 @@ def lambda_handler(event, context):
                 
                 # --- AI CONTINUOUS CHAT (AMAZON BEDROCK) ---
                 try:
-                    # Initialize Bedrock Runtime
-                    bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
+                    # Initialize Bedrock Runtime with aggressive timeouts for Twilio webhooks
+                    from botocore.config import Config
+                    br_config = Config(connect_timeout=2, read_timeout=4, retries={'max_attempts': 0})
+                    bedrock = boto3.client('bedrock-runtime', region_name='us-east-1', config=br_config)
                     
                     system_prompt = (
                         f"You are Rakt Doot, an AI blood donation coordinator for an NGO. "
